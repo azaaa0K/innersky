@@ -1,13 +1,21 @@
 import 'dart:math' as math;
-
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import '../../core/app_colors.dart';
+import '../../core/app_sizes.dart';
+import '../../core/app_typography.dart';
+import '../../core/onboarding_profile.dart';
+import '../../shared/widgets/app_primary_button.dart';
+import '../../shared/widgets/onboarding_close_button.dart';
+import '../../shared/widgets/onboarding_progress_indicator.dart';
 import 'enter_birth_location_screen.dart';
 
 class EnterBirthTimeScreen extends StatefulWidget {
-  const EnterBirthTimeScreen({super.key});
+  const EnterBirthTimeScreen({required this.profile, super.key});
+
+  final OnboardingProfile profile;
 
   @override
   State<EnterBirthTimeScreen> createState() => _EnterBirthTimeScreenState();
@@ -16,293 +24,276 @@ class EnterBirthTimeScreen extends StatefulWidget {
 class _EnterBirthTimeScreenState extends State<EnterBirthTimeScreen> {
   static const String _assetBase = 'assets/welcome';
 
-  final List<int> _hours = List.generate(12, (index) => index + 1);
-  final List<String> _minutes =
-      List.generate(60, (index) => index.toString().padLeft(2, '0'));
-  final List<String> _periods = const ['AM', 'PM'];
-
-  late final FixedExtentScrollController _hourController;
-  late final FixedExtentScrollController _minuteController;
-  late final FixedExtentScrollController _periodController;
-
-  int _selectedHourIndex = 9;
-  int _selectedMinuteIndex = 30;
-  int _selectedPeriodIndex = 0;
-
-  double _x(double screenWidth, double value) {
-    return screenWidth * (value / 832);
-  }
-
-  double _y(double screenHeight, double value) {
-    return screenHeight * (value / 1792);
-  }
-
-  double _s(BuildContext context, double value) {
-    final size = MediaQuery.sizeOf(context);
-    final scale = math.min(size.width / 832, size.height / 1792);
-    return value * scale;
-  }
+  late TimeOfDay _selectedTime;
+  bool _isContinuing = false;
 
   @override
   void initState() {
     super.initState();
-
-    _hourController = FixedExtentScrollController(
-      initialItem: _selectedHourIndex,
-    );
-
-    _minuteController = FixedExtentScrollController(
-      initialItem: _selectedMinuteIndex,
-    );
-
-    _periodController = FixedExtentScrollController(
-      initialItem: _selectedPeriodIndex,
-    );
+    _selectedTime = widget.profile.birthTime ?? const TimeOfDay(hour: 9, minute: 45); // Default/loaded birth time
   }
 
-  @override
-  void dispose() {
-    _hourController.dispose();
-    _minuteController.dispose();
-    _periodController.dispose();
-    super.dispose();
+  void _onTimeChanged(TimeOfDay newTime) {
+    setState(() => _selectedTime = newTime);
+  }
+
+  Future<void> _continue() async {
+    if (_isContinuing) return;
+    setState(() => _isContinuing = true);
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => EnterBirthLocationScreen(
+          profile: widget.profile.copyWith(birthTime: _selectedTime),
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+    setState(() => _isContinuing = false);
+  }
+
+  String get _formattedTime {
+    final hour = _selectedTime.hourOfPeriod == 0
+        ? 12
+        : _selectedTime.hourOfPeriod;
+    final minute = _selectedTime.minute.toString().padLeft(2, '0');
+    final period = _selectedTime.hour < 12 ? 'AM' : 'PM';
+    return '$hour:$minute $period';
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final w = size.width;
-    final h = size.height;
-
-    final topPad = MediaQuery.paddingOf(context).top;
-    final botPad = MediaQuery.paddingOf(context).bottom;
+    final screenSize = MediaQuery.sizeOf(context);
+    final w = screenSize.width;
+    final h = screenSize.height;
+    final s = _s(context, 1);
+    final topPadding = MediaQuery.paddingOf(context).top;
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
 
     return PopScope(
       canPop: false,
       child: Scaffold(
         resizeToAvoidBottomInset: false,
-        backgroundColor: const Color(0xFFFCFCFB),
+        backgroundColor: AppColors.backgroundPrimary,
         body: SizedBox.expand(
           child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              Container(color: const Color(0xFFFCFCFB)),
+              Container(color: AppColors.backgroundPrimary),
+              // Background elements (kept as-is)
               Positioned.fill(
+                child: Opacity(
+                  opacity: 0.13,
+                  child: Image.asset(
+                    '$_assetBase/cosmic.png',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const Positioned.fill(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: RadialGradient(
-                      center: const Alignment(0, -0.08),
-                      radius: 0.98,
+                      center: Alignment(0, -0.12),
+                      radius: 0.96,
                       colors: [
-                        Colors.white.withOpacity(0.98),
-                        const Color(0xFFFAFAF9).withOpacity(0.92),
-                        const Color(0xFFF4F4F3).withOpacity(0.72),
+                        Color(0xFFFFFFFF),
+                        Color(0xFFF9F9F8),
+                        Color(0xFFF3F3F2),
                       ],
+                      stops: [0.0, 0.55, 1.0],
                     ),
                   ),
                 ),
               ),
+              const Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xF8FFFFFF),
+                        Color(0xE8FFFFFF),
+                        Color(0xD0FFFFFF),
+                        Color(0xF3FFFFFF),
+                      ],
+                      stops: [0.0, 0.34, 0.70, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Social heading
               Positioned(
-                left: _x(w, 56),
-                top: topPad + _y(h, 42),
+                left: _x(w, 54),
+                top: topPadding + _y(h, 36),
                 child: Text(
-                  'Posting to social?\nTag us, we\'re @costarastrology!',
-                  style: GoogleFonts.spaceMono(
-                    fontSize: _s(context, 23),
-                    height: 1.42,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.black,
-                    letterSpacing: _s(context, 0.2),
-                  ),
+                  'Posting to social?\nTag us, we\'re @innersky',
+                  style: AppTypography.socialHeader(s),
+                ),
+              ),
+
+              // Close button
+              Positioned(
+                right: _x(w, 42),
+                top: topPadding + _y(h, 30),
+                child: OnboardingCloseButton(
+                  scale: s,
+                  onTap: () => Navigator.of(context).maybePop(),
+                ),
+              ),
+
+              // Decorative stars (kept)
+              Positioned(
+                left: _x(w, 142),
+                top: topPadding + _y(h, 300),
+                child: _DecorativeStar(
+                  assetPath: '$_assetBase/black_star.svg',
+                  size: _s(context, 24),
+                  opacity: 0.16,
                 ),
               ),
               Positioned(
-                right: _x(w, 50),
-                top: topPad + _y(h, 55),
-                child: SvgPicture.asset(
-                  '$_assetBase/close.svg',
-                  width: _s(context, 34),
-                  height: _s(context, 34),
-                  colorFilter: const ColorFilter.mode(
-                    Colors.black,
-                    BlendMode.srcIn,
-                  ),
+                left: _x(w, 92),
+                top: topPadding + _y(h, 360),
+                child: _DecorativeStar(
+                  assetPath: '$_assetBase/black_star.svg',
+                  size: _s(context, 30),
+                  opacity: 0.16,
                 ),
               ),
+              Positioned(
+                right: _x(w, 162),
+                top: topPadding + _y(h, 296),
+                child: _DecorativeStar(
+                  assetPath: '$_assetBase/black_star.svg',
+                  size: _s(context, 24),
+                  opacity: 0.18,
+                ),
+              ),
+              Positioned(
+                right: _x(w, 98),
+                top: topPadding + _y(h, 372),
+                child: _DecorativeStar(
+                  assetPath: '$_assetBase/black_star.svg',
+                  size: _s(context, 30),
+                  opacity: 0.18,
+                ),
+              ),
+
+              // Moon + Title
               Positioned(
                 left: 0,
                 right: 0,
-                top: topPad + _y(h, 230),
-                child: Text(
-                  'WHAT\'S YOUR BIRTH TIME?',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.spaceMono(
-                    fontSize: _s(context, 23),
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFF4B4B4B),
-                    letterSpacing: _s(context, 2.2),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: _x(w, 76),
-                right: _x(w, 76),
-                top: topPad + _y(h, 382),
-                height: _y(h, 930),
-                child: Stack(
-                  alignment: Alignment.center,
+                top: topPadding + _y(h, 216),
+                child: Column(
                   children: [
-                    Positioned.fill(
-                      child: CustomPaint(
-                        painter: _CurvedLinesPainter(),
+                    SvgPicture.asset(
+                      '$_assetBase/time_moon.svg.svg',
+                      width: _s(context, 112),
+                      height: _s(context, 112),
+                      colorFilter: const ColorFilter.mode(
+                        Colors.black,
+                        BlendMode.srcIn,
                       ),
                     ),
-                    Positioned(
-                      left: _x(w, 122),
-                      top: _y(h, 338),
-                      child: _PickerLabel(
-                        text: 'HOUR',
-                        s: _s(context, 1),
-                      ),
+                    SizedBox(height: _y(h, 26)),
+                    Text('STEP  3  OF  5', style: AppTypography.stepLabel(s)),
+                    SizedBox(height: _y(h, 26)),
+                    Text(
+                      'ENTER YOUR BIRTH TIME',
+                      style: AppTypography.screenTitle(s),
                     ),
-                    Positioned(
-                      left: 0,
-                      right: 10,
-                      top: _y(h, 338),
-                      child: Center(
-                        child: _PickerLabel(
-                          text: 'MINUTE',
-                          s: _s(context, 1),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: _x(w, 130),
-                      top: _y(h, 338),
-                      child: _PickerLabel(
-                        text: 'AM/PM',
-                        s: _s(context, 1),
-                      ),
-                    ),
-                    Positioned(
-                      left: _x(w, 70),
-                      top: _y(h, 395),
-                      width: _x(w, 130),
-                      height: _y(h, 275),
-                      child: _CurvedWheel<int>(
-                        controller: _hourController,
-                        items: _hours,
-                        selectedIndex: _selectedHourIndex,
-                        textBuilder: (value) => value.toString(),
-                        curveType: _WheelCurveType.left,
-                        onSelectedItemChanged: (index) {
-                          setState(() {
-                            _selectedHourIndex = index;
-                          });
-                        },
-                        s: _s(context, 1),
-                      ),
-                    ),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      top: _y(h, 395),
-                      height: _y(h, 275),
-                      child: Center(
-                        child: SizedBox(
-                          width: _x(w, 220),
-                          child: _CurvedWheel<String>(
-                            controller: _minuteController,
-                            items: _minutes,
-                            selectedIndex: _selectedMinuteIndex,
-                            textBuilder: (value) => value,
-                            curveType: _WheelCurveType.middle,
-                            onSelectedItemChanged: (index) {
-                              setState(() {
-                                _selectedMinuteIndex = index;
-                              });
-                            },
-                            s: _s(context, 1),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: _x(w, 78),
-                      top: _y(h, 395),
-                      width: _x(w, 155),
-                      height: _y(h, 275),
-                      child: _CurvedWheel<String>(
-                        controller: _periodController,
-                        items: _periods,
-                        selectedIndex: _selectedPeriodIndex,
-                        textBuilder: (value) => value,
-                        curveType: _WheelCurveType.right,
-                        onSelectedItemChanged: (index) {
-                          setState(() {
-                            _selectedPeriodIndex = index;
-                          });
-                        },
-                        s: _s(context, 1),
+                    SizedBox(height: _y(h, 18)),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: _x(w, 140)),
+                      child: Text(
+                        'This helps us calculate your ascendant and houses.',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.subtitle(s),
                       ),
                     ),
                   ],
                 ),
               ),
+
+              // === NEW GLASSY TIME PICKER ===
               Positioned(
-                left: _x(w, 42),
-                right: _x(w, 42),
-                bottom: botPad + _y(h, 230),
+                left: _x(w, 32),
+                right: _x(w, 32),
+                top: topPadding + _y(h, 520),
+                child: GlassTimePicker(
+                  initialTime: _selectedTime,
+                  onTimeChanged: _onTimeChanged,
+                  width: w - _x(w, 64),
+                ),
+              ),
+
+              // Selected time display
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: bottomPadding + _y(h, 320),
                 child: Column(
                   children: [
                     Text(
-                      'We use this to generate your astrological birth chart.',
-                      textAlign: TextAlign.center,
+                      _formattedTime,
                       style: GoogleFonts.spaceMono(
-                        fontSize: _s(context, 20.5),
-                        height: 1.42,
+                        fontSize: _s(context, 40),
                         fontWeight: FontWeight.w400,
-                        color: const Color(0xFF555555),
-                        letterSpacing: _s(context, -0.25),
+                        color: const Color(0xFF101010),
+                        letterSpacing: _s(context, 0.8),
                       ),
                     ),
-                    SizedBox(height: _y(h, 18)),
+                    SizedBox(height: _y(h, 12)),
                     Text(
-                      'We never share or sell your data.',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.spaceMono(
-                        fontSize: _s(context, 20.5),
-                        height: 1.42,
-                        fontWeight: FontWeight.w400,
-                        color: const Color(0xFF555555),
-                        letterSpacing: _s(context, -0.25),
-                      ),
+                      'Local Time',
+                      style: AppTypography.helperText(
+                        s,
+                      ).copyWith(color: const Color(0xFFAAAAAA)),
                     ),
                   ],
                 ),
               ),
+
+              // Privacy
               Positioned(
-                left: _x(w, 55),
-                right: _x(w, 55),
-                bottom: botPad + _y(h, 86),
-                child: _ContinueButton(
-                  s: _s(context, 1),
-                  onTap: () {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (_) => const EnterBirthLocationScreen(),
-                      ),
-                    );
-                  },
+                left: _x(w, 88),
+                right: _x(w, 88),
+                bottom: bottomPadding + _y(h, 218),
+                child: _PrivacyCopy(
+                  scale: s,
+                  assetPath: '$_assetBase/lock.svg',
                 ),
               ),
+
+              // Continue button
+              Positioned(
+                left: _x(w, AppSizes.ctaHorizontalInset),
+                right: _x(w, AppSizes.ctaHorizontalInset),
+                bottom: bottomPadding + _y(h, AppSizes.ctaBottomInset),
+                child: AppPrimaryButton(
+                  label: _isContinuing ? 'OPENING' : 'CONTINUE',
+                  scale: s,
+                  isEnabled: !_isContinuing,
+                  onPressed: _continue,
+                ),
+              ),
+
+              // Progress
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: botPad + _y(h, 36),
-                child: _StepProgressIndicator(
+                bottom: math.max(
+                  _y(h, AppSizes.progressBottomInset),
+                  bottomPadding + 8,
+                ),
+                child: OnboardingProgressIndicator(
                   currentStep: 3,
-                  totalSteps: 4,
-                  s: _s(context, 1),
+                  totalSteps: 5,
+                  scale: s,
                 ),
               ),
             ],
@@ -311,371 +302,400 @@ class _EnterBirthTimeScreenState extends State<EnterBirthTimeScreen> {
       ),
     );
   }
-}
 
-class _PickerLabel extends StatelessWidget {
-  const _PickerLabel({
-    required this.text,
-    required this.s,
-  });
-
-  final String text;
-  final double s;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: GoogleFonts.inter(
-        fontSize: 16 * s,
-        fontWeight: FontWeight.w500,
-        color: const Color(0xFF8D8D8D),
-        letterSpacing: 0.5 * s,
-      ),
-    );
+  double _x(double screenWidth, double value) => screenWidth * (value / 832);
+  double _y(double screenHeight, double value) => screenHeight * (value / 1792);
+  double _s(BuildContext context, double value) {
+    final size = MediaQuery.sizeOf(context);
+    final scale = math.min(size.width / 832, size.height / 1792);
+    return value * scale;
   }
 }
 
-enum _WheelCurveType {
-  left,
-  middle,
-  right,
-}
+// ==================== GLASSY TIME PICKER WIDGET ====================
 
-class _CurvedWheel<T> extends StatelessWidget {
-  const _CurvedWheel({
-    required this.controller,
-    required this.items,
-    required this.selectedIndex,
-    required this.textBuilder,
-    required this.curveType,
-    required this.onSelectedItemChanged,
-    required this.s,
+class GlassTimePicker extends StatefulWidget {
+  const GlassTimePicker({
+    super.key,
+    this.initialTime,
+    this.onTimeChanged,
+    this.width = 340,
   });
 
-  final FixedExtentScrollController controller;
-  final List<T> items;
-  final int selectedIndex;
-  final String Function(T value) textBuilder;
-  final _WheelCurveType curveType;
-  final ValueChanged<int> onSelectedItemChanged;
-  final double s;
+  final TimeOfDay? initialTime;
+  final Function(TimeOfDay)? onTimeChanged;
+  final double width;
 
-  TextAlign get _textAlign {
-    switch (curveType) {
-      case _WheelCurveType.left:
-        return TextAlign.left;
-      case _WheelCurveType.middle:
-        return TextAlign.center;
-      case _WheelCurveType.right:
-        return TextAlign.right;
-    }
+  @override
+  State<GlassTimePicker> createState() => _GlassTimePickerState();
+}
+
+class _GlassTimePickerState extends State<GlassTimePicker> {
+  late TimeOfDay _selectedTime;
+  bool _isAM = true; // For visual demo
+  late final FixedExtentScrollController _hourController;
+  late final FixedExtentScrollController _minuteController;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedTime = widget.initialTime ?? const TimeOfDay(hour: 10, minute: 45);
+    _isAM = _selectedTime.hour < 12;
+
+    final initialHour = _selectedTime.hourOfPeriod % 12;
+    final initialMinute = (_selectedTime.minute / 5).round() % 12;
+
+    _hourController = FixedExtentScrollController(initialItem: initialHour);
+    _minuteController = FixedExtentScrollController(initialItem: initialMinute);
+  }
+
+  @override
+  void dispose() {
+    _hourController.dispose();
+    _minuteController.dispose();
+    super.dispose();
+  }
+
+  void _updateTime(TimeOfDay newTime) {
+    setState(() {
+      _selectedTime = newTime;
+      _isAM = newTime.hour < 12;
+    });
+    widget.onTimeChanged?.call(newTime);
   }
 
   @override
   Widget build(BuildContext context) {
-    return ListWheelScrollView.useDelegate(
-      controller: controller,
-      itemExtent: 58 * s,
-      diameterRatio: 1.8,
-      perspective: 0.006,
-      physics: const FixedExtentScrollPhysics(),
-      onSelectedItemChanged: onSelectedItemChanged,
-      childDelegate: ListWheelChildBuilderDelegate(
-        childCount: items.length,
-        builder: (context, index) {
-          if (index < 0 || index >= items.length) {
-            return null;
-          }
-
-          final bool isSelected = index == selectedIndex;
-
-          return AnimatedOpacity(
-            duration: const Duration(milliseconds: 120),
-            opacity: isSelected ? 1.0 : 0.68,
-            child: Align(
-              alignment: curveType == _WheelCurveType.left
-                  ? Alignment.centerLeft
-                  : curveType == _WheelCurveType.right
-                      ? Alignment.centerRight
-                      : Alignment.center,
-              child: AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 120),
-                style: GoogleFonts.spaceMono(
-                  fontSize: isSelected ? 27 * s : 23 * s,
-                  fontWeight: FontWeight.w400,
-                  color: isSelected
-                      ? const Color(0xFF262626)
-                      : const Color(0xFFC9C9C9),
-                  height: 1.0,
-                ),
-                child: Text(
-                  textBuilder(items[index]),
-                  textAlign: _textAlign,
-                ),
-              ),
+    final hour = _selectedTime.hourOfPeriod == 0
+        ? 12
+        : _selectedTime.hourOfPeriod;
+    final minute = _selectedTime.minute.toString().padLeft(2, '0');
+    return Center(
+      child: Container(
+        width: widget.width,
+        padding: const EdgeInsets.all(24), // Good padding on all sides
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(32),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white.withValues(alpha: 0.15),
+              Colors.white.withValues(alpha: 0.05),
+            ],
+          ),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.25),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 30,
+              offset: const Offset(0, 15),
             ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _ContinueButton extends StatelessWidget {
-  const _ContinueButton({
-    required this.s,
-    required this.onTap,
-  });
-
-  final double s;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 104 * s,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(24 * s),
-          onTap: onTap,
-          child: Ink(
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(24 * s),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 24 * s,
-                  offset: Offset(0, 11 * s),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Top tabs (adapted for time)
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  padding: const EdgeInsets.all(4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildTab("Hourly", true),
+                      _buildTab("Custom", false),
+                    ],
+                  ),
                 ),
+
+                const SizedBox(height: 28),
+
+                // Big Time Display
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      "$hour:$minute",
+                      style: const TextStyle(
+                        fontSize: 72,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        height: 1.0,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            setState(() => _isAM = true);
+                            _updateTime(
+                              TimeOfDay(
+                                hour: _selectedTime.hour % 12,
+                                minute: _selectedTime.minute,
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _isAM
+                                  ? Colors.white.withValues(alpha: 0.3)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              "AM",
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() => _isAM = false);
+                            _updateTime(
+                              TimeOfDay(
+                                hour: (_selectedTime.hour % 12) + 12,
+                                minute: _selectedTime.minute,
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: !_isAM
+                                  ? Colors.white.withValues(alpha: 0.3)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              "PM",
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 32),
+
+                // Hour & Minute selectors (horizontal scrollable for demo)
+                Row(
+                  children: [
+                    // Hour selector
+                    Expanded(
+                      child: _buildTimeScroller(
+                        label: "Hour",
+                        current: hour,
+                        controller: _hourController,
+                        onChanged: (newHour) {
+                          int h24 = newHour == 12
+                              ? (_isAM ? 0 : 12)
+                              : (_isAM ? newHour : newHour + 12);
+                          final newTime = TimeOfDay(
+                            hour: h24,
+                            minute: _selectedTime.minute,
+                          );
+                          _updateTime(newTime);
+                        },
+                        items: List.generate(12, (i) => i == 0 ? 12 : i),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Minute selector
+                    Expanded(
+                      child: _buildTimeScroller(
+                        label: "Minute",
+                        current: _selectedTime.minute,
+                        controller: _minuteController,
+                        onChanged: (newMinute) {
+                          final newTime = TimeOfDay(
+                            hour: _selectedTime.hour,
+                            minute: newMinute,
+                          );
+                          _updateTime(newTime);
+                        },
+                        items: List.generate(
+                          12,
+                          (i) => i * 5,
+                        ), // 5 minute steps
+                        isMinute: true,
+                      ),
+                    ),
+                  ],
+                ),
+
               ],
-            ),
-            child: Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'CONTINUE',
-                    style: GoogleFonts.spaceMono(
-                      fontSize: 24 * s,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white,
-                      letterSpacing: 2.5 * s,
-                    ),
-                  ),
-                  SizedBox(width: 44 * s),
-                  Text(
-                    '→',
-                    style: GoogleFonts.spaceMono(
-                      fontSize: 38 * s,
-                      fontWeight: FontWeight.w300,
-                      color: Colors.white,
-                      height: 1.0,
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ),
       ),
     );
   }
-}
 
-class _StepProgressIndicator extends StatelessWidget {
-  const _StepProgressIndicator({
-    required this.currentStep,
-    required this.totalSteps,
-    required this.s,
-  });
+  Widget _buildTab(String text, bool isSelected) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10),
+      decoration: BoxDecoration(
+        color: isSelected ? Colors.white : Colors.transparent,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: isSelected ? Colors.black87 : Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 15,
+        ),
+      ),
+    );
+  }
 
-  final int currentStep;
-  final int totalSteps;
-  final double s;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildTimeScroller({
+    required String label,
+    required int current,
+    required FixedExtentScrollController controller,
+    required Function(int) onChanged,
+    required List<int> items,
+    bool isMinute = false,
+  }) {
     return Column(
       children: [
         Text(
-          '$currentStep / $totalSteps',
-          style: GoogleFonts.spaceMono(
-            fontSize: 18 * s,
-            fontWeight: FontWeight.w400,
-            color: Colors.black,
-            letterSpacing: 1.5 * s,
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
           ),
         ),
-        SizedBox(height: 18 * s),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(totalSteps, (index) {
-            final isActive = index <= currentStep - 1;
-
-            return Container(
-              margin: EdgeInsets.symmetric(horizontal: 6 * s),
-              width: 66 * s,
-              height: 6 * s,
-              decoration: BoxDecoration(
-                color: isActive ? Colors.black : const Color(0xFFD6D6D6),
-                borderRadius: BorderRadius.circular(100),
-              ),
-            );
-          }),
+        const SizedBox(height: 12),
+        Container(
+          height: 120,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: ListWheelScrollView.useDelegate(
+            controller: controller,
+            itemExtent: 48,
+            diameterRatio: 1.5,
+            physics: const FixedExtentScrollPhysics(),
+            onSelectedItemChanged: (index) => onChanged(items[index]),
+            childDelegate: ListWheelChildBuilderDelegate(
+              builder: (context, index) {
+                final value = items[index % items.length];
+                final isSelected = value == current;
+                return Center(
+                  child: AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 150),
+                    style: TextStyle(
+                      fontSize: isSelected ? 32 : 24,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.6),
+                    ),
+                    child: Text(
+                      isMinute
+                          ? value.toString().padLeft(2, '0')
+                          : value.toString(),
+                    ),
+                  ),
+                );
+              },
+              childCount: items.length,
+            ),
+          ),
         ),
       ],
     );
   }
 }
 
-class _CurvedLinesPainter extends CustomPainter {
+class _DecorativeStar extends StatelessWidget {
+  const _DecorativeStar({
+    required this.assetPath,
+    required this.size,
+    required this.opacity,
+  });
+
+  final String assetPath;
+  final double size;
+  final double opacity;
+
   @override
-  void paint(Canvas canvas, Size size) {
-    Paint fadePaint(Color color, {double opacity = 0.55}) {
-      return Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            color.withOpacity(0.0),
-            color.withOpacity(opacity),
-            color.withOpacity(opacity),
-            color.withOpacity(0.0),
-          ],
-          stops: const [
-            0.00,
-            0.16,
-            0.84,
-            1.00,
-          ],
-        ).createShader(
-          Rect.fromLTWH(0, 0, size.width, size.height),
-        )
-        ..strokeWidth = 1.0
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round;
-    }
-
-    final greyPaint = fadePaint(
-      const Color(0xFFB9B9B9),
-      opacity: 0.56,
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: opacity,
+      child: SvgPicture.asset(assetPath, width: size, height: size),
     );
-
-    final softGreyPaint = fadePaint(
-      const Color(0xFFD0D0D0),
-      opacity: 0.52,
-    );
-
-    final warmPaint = fadePaint(
-      const Color(0xFFE4A29E),
-      opacity: 0.52,
-    );
-
-    final Path line1 = Path()
-      ..moveTo(size.width * 0.255, size.height * 0.045)
-      ..cubicTo(
-        size.width * 0.270,
-        size.height * 0.220,
-        size.width * 0.055,
-        size.height * 0.390,
-        size.width * 0.105,
-        size.height * 0.560,
-      )
-      ..cubicTo(
-        size.width * 0.145,
-        size.height * 0.700,
-        size.width * 0.248,
-        size.height * 0.845,
-        size.width * 0.255,
-        size.height * 0.965,
-      );
-
-    final Path line2 = Path()
-      ..moveTo(size.width * 0.320, size.height * 0.060)
-      ..cubicTo(
-        size.width * 0.330,
-        size.height * 0.240,
-        size.width * 0.185,
-        size.height * 0.410,
-        size.width * 0.215,
-        size.height * 0.565,
-      )
-      ..cubicTo(
-        size.width * 0.240,
-        size.height * 0.715,
-        size.width * 0.315,
-        size.height * 0.855,
-        size.width * 0.320,
-        size.height * 0.960,
-      );
-
-    final Path line3 = Path()
-      ..moveTo(size.width * 0.500, size.height * 0.050)
-      ..cubicTo(
-        size.width * 0.500,
-        size.height * 0.230,
-        size.width * 0.500,
-        size.height * 0.405,
-        size.width * 0.500,
-        size.height * 0.565,
-      )
-      ..cubicTo(
-        size.width * 0.500,
-        size.height * 0.720,
-        size.width * 0.500,
-        size.height * 0.855,
-        size.width * 0.500,
-        size.height * 0.965,
-      );
-
-    final Path line4 = Path()
-      ..moveTo(size.width * 0.680, size.height * 0.060)
-      ..cubicTo(
-        size.width * 0.670,
-        size.height * 0.240,
-        size.width * 0.815,
-        size.height * 0.410,
-        size.width * 0.785,
-        size.height * 0.565,
-      )
-      ..cubicTo(
-        size.width * 0.760,
-        size.height * 0.715,
-        size.width * 0.685,
-        size.height * 0.855,
-        size.width * 0.680,
-        size.height * 0.960,
-      );
-
-    final Path line5 = Path()
-      ..moveTo(size.width * 0.745, size.height * 0.045)
-      ..cubicTo(
-        size.width * 0.730,
-        size.height * 0.220,
-        size.width * 0.945,
-        size.height * 0.390,
-        size.width * 0.895,
-        size.height * 0.560,
-      )
-      ..cubicTo(
-        size.width * 0.855,
-        size.height * 0.700,
-        size.width * 0.752,
-        size.height * 0.845,
-        size.width * 0.745,
-        size.height * 0.965,
-      );
-
-    canvas.drawPath(line1, greyPaint);
-    canvas.drawPath(line2, softGreyPaint);
-    canvas.drawPath(line3, warmPaint);
-    canvas.drawPath(line4, softGreyPaint);
-    canvas.drawPath(line5, greyPaint);
   }
+}
+
+class _PrivacyCopy extends StatelessWidget {
+  const _PrivacyCopy({required this.scale, required this.assetPath});
+
+  final double scale;
+  final String assetPath;
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SvgPicture.asset(
+          assetPath,
+          width: 14 * scale,
+          height: 14 * scale,
+          colorFilter: const ColorFilter.mode(
+            Color(0xFF666666),
+            BlendMode.srcIn,
+          ),
+        ),
+        SizedBox(width: 6 * scale),
+        Text(
+          'Your data stays private.',
+          style: TextStyle(
+            color: const Color(0xFF666666),
+            fontSize: 12 * scale,
+          ),
+        ),
+      ],
+    );
+  }
 }

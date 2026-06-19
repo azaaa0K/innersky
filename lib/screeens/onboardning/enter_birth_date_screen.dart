@@ -1,19 +1,29 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/app_colors.dart';
+import '../../core/app_sizes.dart';
+import '../../core/app_typography.dart';
+import '../../core/onboarding_profile.dart';
+import '../../shared/widgets/app_primary_button.dart';
+import '../../shared/widgets/onboarding_close_button.dart';
+import '../../shared/widgets/onboarding_progress_indicator.dart';
+
+import 'enter_birth_time_screen.dart';
+
 class EnterBirthDateScreen extends StatefulWidget {
-  const EnterBirthDateScreen({super.key});
+  const EnterBirthDateScreen({required this.profile, super.key});
+
+  final OnboardingProfile profile;
 
   @override
   State<EnterBirthDateScreen> createState() => _EnterBirthDateScreenState();
 }
 
 class _EnterBirthDateScreenState extends State<EnterBirthDateScreen> {
-  static const String _assetBase = 'assets/welcome';
-
   final List<int> _days = List.generate(31, (index) => index + 1);
 
   final List<String> _months = const [
@@ -59,6 +69,20 @@ class _EnterBirthDateScreenState extends State<EnterBirthDateScreen> {
   void initState() {
     super.initState();
 
+    if (widget.profile.birthDate != null) {
+      final date = widget.profile.birthDate!;
+      final dayVal = date.day;
+      final yearVal = date.year;
+
+      final dayIdx = _days.indexOf(dayVal);
+      final monthIdx = date.month - 1;
+      final yearIdx = _years.indexOf(yearVal);
+
+      if (dayIdx != -1) _selectedDayIndex = dayIdx;
+      if (monthIdx >= 0 && monthIdx < 12) _selectedMonthIndex = monthIdx;
+      if (yearIdx != -1) _selectedYearIndex = yearIdx;
+    }
+
     _dayController = FixedExtentScrollController(
       initialItem: _selectedDayIndex,
     );
@@ -85,265 +109,251 @@ class _EnterBirthDateScreenState extends State<EnterBirthDateScreen> {
     final size = MediaQuery.sizeOf(context);
     final w = size.width;
     final h = size.height;
+    final s = _s(context, 1);
 
     final topPad = MediaQuery.paddingOf(context).top;
     final botPad = MediaQuery.paddingOf(context).bottom;
 
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        resizeToAvoidBottomInset: false,
-        backgroundColor: const Color(0xFFFCFCFB),
-        body: SizedBox.expand(
-          child: Stack(
-            children: [
-              Container(color: const Color(0xFFFCFCFB)),
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      backgroundColor: AppColors.backgroundPrimary,
+      body: SizedBox.expand(
+        child: Stack(
+          children: [
+            Container(color: AppColors.backgroundPrimary),
 
-              /// Soft background light
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      center: const Alignment(0, -0.08),
-                      radius: 0.98,
-                      colors: [
-                        Colors.white.withOpacity(0.98),
-                        const Color(0xFFFAFAF9).withOpacity(0.92),
-                        const Color(0xFFF4F4F3).withOpacity(0.72),
-                      ],
+            // Soft background light
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(0, -0.08),
+                    radius: 0.98,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.98),
+                      const Color(0xFFFAFAF9).withValues(alpha: 0.92),
+                      const Color(0xFFF4F4F3).withValues(alpha: 0.72),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Social header (fixed: @innersky) ──────────────────────────
+            Positioned(
+              left: _x(w, 56),
+              top: topPad + _y(h, 42),
+              child: Text(
+                'Posting to social?\nTag us, we\'re @innersky',
+                style: AppTypography.socialHeader(s),
+              ),
+            ),
+
+            // ── Close button (was plain SVG; now consistent circle button) ─
+            Positioned(
+              right: _x(w, 50),
+              top: topPad + _y(h, 42),
+              child: OnboardingCloseButton(
+                scale: s,
+                onTap: () => Navigator.of(context).maybePop(),
+              ),
+            ),
+
+            // ── Step label + Title (fixed: was SpaceMono, now Playfair) ───
+            Positioned(
+              left: 0,
+              right: 0,
+              top: topPad + _y(h, 200),
+              child: Column(
+                children: [
+                  Text(
+                    'STEP  2  OF  5',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.stepLabel(s),
+                  ),
+                  SizedBox(height: _y(h, 26)),
+                  Text(
+                    "WHAT'S YOUR BIRTH DATE?",
+                    textAlign: TextAlign.center,
+                    style: AppTypography.screenTitle(s),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Birth date picker with curved columns ──────────────────────
+            Positioned(
+              left: _x(w, 76),
+              right: _x(w, 76),
+              top: topPad + _y(h, 382),
+              height: _y(h, 930),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned.fill(
+                    child: CustomPaint(painter: _CurvedLinesPainter()),
+                  ),
+
+                  // Labels
+                  Positioned(
+                    left: _x(w, 96),
+                    top: _y(h, 338),
+                    child: _PickerLabel(text: 'DAY', s: s),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: _y(h, 338),
+                    child: Center(
+                      child: _PickerLabel(text: 'MONTH', s: s),
                     ),
                   ),
-                ),
-              ),
-
-              /// Top social text
-              Positioned(
-                left: _x(w, 56),
-                top: topPad + _y(h, 42),
-                child: Text(
-                  'Posting to social?\nTag us, we’re @costarastrology!',
-                  style: GoogleFonts.spaceMono(
-                    fontSize: _s(context, 23),
-                    height: 1.42,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.black,
-                    letterSpacing: _s(context, 0.2),
+                  Positioned(
+                    right: _x(w, 96),
+                    top: _y(h, 338),
+                    child: _PickerLabel(text: 'YEAR', s: s),
                   ),
-                ),
-              ),
 
-              /// Close icon
-              Positioned(
-                right: _x(w, 50),
-                top: topPad + _y(h, 55),
-                child: SvgPicture.asset(
-                  '$_assetBase/close.svg',
-                  width: _s(context, 34),
-                  height: _s(context, 34),
-                  colorFilter: const ColorFilter.mode(
-                    Colors.black,
-                    BlendMode.srcIn,
-                  ),
-                ),
-              ),
-
-              /// Title
-              Positioned(
-                left: 0,
-                right: 0,
-                top: topPad + _y(h, 230),
-                child: Text(
-                  "WHAT'S YOUR BIRTH DATE?",
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.spaceMono(
-                    fontSize: _s(context, 23),
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFF4B4B4B),
-                    letterSpacing: _s(context, 2.2),
-                  ),
-                ),
-              ),
-
-              /// Birth date picker with curved columns
-              Positioned(
-                left: _x(w, 76),
-                right: _x(w, 76),
-                top: topPad + _y(h, 382),
-                height: _y(h, 930),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Positioned.fill(
-                      child: CustomPaint(
-                        painter: _CurvedLinesPainter(),
-                      ),
+                  // Day wheel
+                  Positioned(
+                    left: _x(w, 70),
+                    top: _y(h, 395),
+                    width: _x(w, 130),
+                    height: _y(h, 275),
+                    child: _CurvedBirthWheel<int>(
+                      controller: _dayController,
+                      items: _days,
+                      selectedIndex: _selectedDayIndex,
+                      textBuilder: (value) => value.toString(),
+                      curveType: _WheelCurveType.left,
+                      onSelectedItemChanged: (index) {
+                        setState(() {
+                          _selectedDayIndex = index;
+                        });
+                      },
+                      s: s,
                     ),
+                  ),
 
-                    /// Labels
-                    Positioned(
-                      left: _x(w, 96),
-                      top: _y(h, 338),
-                      child: _PickerLabel(
-                        text: 'DAY',
-                        s: _s(context, 1),
-                      ),
-                    ),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      top: _y(h, 338),
-                      child: Center(
-                        child: _PickerLabel(
-                          text: 'MONTH',
-                          s: _s(context, 1),
+                  // Month wheel
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: _y(h, 395),
+                    height: _y(h, 275),
+                    child: Center(
+                      child: SizedBox(
+                        width: _x(w, 270),
+                        child: _CurvedBirthWheel<String>(
+                          controller: _monthController,
+                          items: _months,
+                          selectedIndex: _selectedMonthIndex,
+                          textBuilder: (value) => value,
+                          curveType: _WheelCurveType.middle,
+                          onSelectedItemChanged: (index) {
+                            setState(() {
+                              _selectedMonthIndex = index;
+                            });
+                          },
+                          s: s,
                         ),
                       ),
                     ),
-                    Positioned(
-                      right: _x(w, 96),
-                      top: _y(h, 338),
-                      child: _PickerLabel(
-                        text: 'YEAR',
-                        s: _s(context, 1),
-                      ),
-                    ),
+                  ),
 
-                    /// Day curved wheel
-                    Positioned(
-                      left: _x(w, 70),
-                      top: _y(h, 395),
-                      width: _x(w, 130),
-                      height: _y(h, 275),
-                      child: _CurvedBirthWheel<int>(
-                        controller: _dayController,
-                        items: _days,
-                        selectedIndex: _selectedDayIndex,
-                        textBuilder: (value) => value.toString(),
-                        curveType: _WheelCurveType.left,
-                        onSelectedItemChanged: (index) {
-                          setState(() {
-                            _selectedDayIndex = index;
-                          });
-                        },
-                        s: _s(context, 1),
-                      ),
+                  // Year wheel
+                  Positioned(
+                    right: _x(w, 55),
+                    top: _y(h, 395),
+                    width: _x(w, 175),
+                    height: _y(h, 275),
+                    child: _CurvedBirthWheel<int>(
+                      controller: _yearController,
+                      items: _years,
+                      selectedIndex: _selectedYearIndex,
+                      textBuilder: (value) => value.toString(),
+                      curveType: _WheelCurveType.right,
+                      onSelectedItemChanged: (index) {
+                        setState(() {
+                          _selectedYearIndex = index;
+                        });
+                      },
+                      s: s,
                     ),
-
-                    /// Month curved wheel
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      top: _y(h, 395),
-                      height: _y(h, 275),
-                      child: Center(
-                        child: SizedBox(
-                          width: _x(w, 270),
-                          child: _CurvedBirthWheel<String>(
-                            controller: _monthController,
-                            items: _months,
-                            selectedIndex: _selectedMonthIndex,
-                            textBuilder: (value) => value,
-                            curveType: _WheelCurveType.middle,
-                            onSelectedItemChanged: (index) {
-                              setState(() {
-                                _selectedMonthIndex = index;
-                              });
-                            },
-                            s: _s(context, 1),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    /// Year curved wheel
-                    Positioned(
-                      right: _x(w, 55),
-                      top: _y(h, 395),
-                      width: _x(w, 175),
-                      height: _y(h, 275),
-                      child: _CurvedBirthWheel<int>(
-                        controller: _yearController,
-                        items: _years,
-                        selectedIndex: _selectedYearIndex,
-                        textBuilder: (value) => value.toString(),
-                        curveType: _WheelCurveType.right,
-                        onSelectedItemChanged: (index) {
-                          setState(() {
-                            _selectedYearIndex = index;
-                          });
-                        },
-                        s: _s(context, 1),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
 
-              /// Privacy text
-              Positioned(
-                left: _x(w, 42),
-                right: _x(w, 42),
-                bottom: botPad + _y(h, 165),
-                child: Column(
-                  children: [
-                    Text(
-                      'We use this to generate your astrological birth chart.',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.spaceMono(
-                        fontSize: _s(context, 20.5),
-                        height: 1.42,
-                        fontWeight: FontWeight.w400,
-                        color: const Color(0xFF555555),
-                        letterSpacing: _s(context, -0.25),
+            // ── Privacy copy (fixed: was SpaceMono, now Inter) ─────────────
+            Positioned(
+              left: _x(w, 42),
+              right: _x(w, 42),
+              bottom: botPad + _y(h, 165),
+              child: Column(
+                children: [
+                  Text(
+                    'We use this to generate your astrological birth chart.',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.helperText(s),
+                  ),
+                  SizedBox(height: _y(h, 18)),
+                  Text(
+                    'We never share or sell your data.',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.helperText(s),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── CTA button (fixed: was square radius, now 24*s rounded) ───
+            Positioned(
+              left: _x(w, AppSizes.ctaHorizontalInset),
+              right: _x(w, AppSizes.ctaHorizontalInset),
+              bottom: botPad + _y(h, AppSizes.ctaBottomInset),
+              child: AppPrimaryButton(
+                label: 'CONTINUE',
+                scale: s,
+                onPressed: () {
+                  final birthDate = DateTime(
+                    _years[_selectedYearIndex],
+                    _selectedMonthIndex + 1,
+                    _days[_selectedDayIndex],
+                  );
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => EnterBirthTimeScreen(
+                        profile: widget.profile.copyWith(birthDate: birthDate),
                       ),
                     ),
-                    SizedBox(height: _y(h, 18)),
-                    Text(
-                      'We never share or sell your data.',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.spaceMono(
-                        fontSize: _s(context, 20.5),
-                        height: 1.42,
-                        fontWeight: FontWeight.w400,
-                        color: const Color(0xFF555555),
-                        letterSpacing: _s(context, -0.25),
-                      ),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
+            ),
 
-              /// Continue button
-              Positioned(
-                left: _x(w, 47),
-                right: _x(w, 47),
-                bottom: botPad + _y(h, 38),
-                child: _ContinueButton(
-                  s: _s(context, 1),
-                  onTap: () {
-                    final day = _days[_selectedDayIndex];
-                    final month = _months[_selectedMonthIndex];
-                    final year = _years[_selectedYearIndex];
-
-                    debugPrint('Selected birth date: $day $month $year');
-
-                    /// Next screen will come here later.
-                  },
-                ),
+            // ── Progress indicator (was MISSING; now added) ────────────────
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: math.max(_y(h, AppSizes.progressBottomInset), botPad + 8),
+              child: OnboardingProgressIndicator(
+                currentStep: 2,
+                totalSteps: 5,
+                scale: s,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
+// ── Private widgets ──────────────────────────────────────────────────────────
+
 class _PickerLabel extends StatelessWidget {
-  const _PickerLabel({
-    required this.text,
-    required this.s,
-  });
+  const _PickerLabel({required this.text, required this.s});
 
   final String text;
   final double s;
@@ -362,11 +372,7 @@ class _PickerLabel extends StatelessWidget {
   }
 }
 
-enum _WheelCurveType {
-  left,
-  middle,
-  right,
-}
+enum _WheelCurveType { left, middle, right }
 
 class _CurvedBirthWheel<T> extends StatelessWidget {
   const _CurvedBirthWheel({
@@ -389,35 +395,25 @@ class _CurvedBirthWheel<T> extends StatelessWidget {
 
   double _curveXOffset(int distance) {
     final d = distance.toDouble();
-
     switch (curveType) {
       case _WheelCurveType.left:
-        /// Day text sits between the first two grey curves.
-        /// Top and bottom items move slightly left, like the reference.
         return -10.0 * d.abs() * s;
-
       case _WheelCurveType.middle:
-        /// Month column is almost centered, only a soft curve.
         if (distance < 0) return -5.0 * s;
         if (distance > 0) return -4.0 * s;
         return 0;
-
       case _WheelCurveType.right:
-        /// Year text follows the warm/red right curve.
         return 8.0 * d.abs() * s;
     }
   }
 
   double _curveRotation(int distance) {
     if (distance == 0) return 0;
-
     switch (curveType) {
       case _WheelCurveType.left:
         return distance < 0 ? -0.020 : 0.018;
-
       case _WheelCurveType.middle:
         return distance < 0 ? -0.010 : 0.010;
-
       case _WheelCurveType.right:
         return distance < 0 ? 0.018 : -0.018;
     }
@@ -439,15 +435,12 @@ class _CurvedBirthWheel<T> extends StatelessWidget {
         builder: (context, index) {
           final distance = index - selectedIndex;
           final isSelected = distance == 0;
-
           final safeDistance = distance.clamp(-2, 2);
           final xOffset = _curveXOffset(safeDistance);
           final rotation = _curveRotation(safeDistance);
-
           final Color textColor = isSelected
               ? const Color(0xFF262626)
               : const Color(0xFFC9C9C9);
-
           final double fontSize = isSelected ? 29 * s : 28 * s;
           final double opacity = isSelected ? 1.0 : 0.78;
 
@@ -490,75 +483,27 @@ class _CurvedBirthWheel<T> extends StatelessWidget {
   }
 }
 
-class _ContinueButton extends StatelessWidget {
-  const _ContinueButton({
-    required this.s,
-    required this.onTap,
-  });
-
-  final double s;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 104 * s,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          child: Ink(
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.zero,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.14),
-                  blurRadius: 22 * s,
-                  offset: Offset(0, 10 * s),
-                ),
-              ],
-            ),
-            child: Center(
-              child: Text(
-                'CONTINUE',
-                style: GoogleFonts.spaceMono(
-                  fontSize: 24 * s,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white,
-                  letterSpacing: 1.3 * s,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _CurvedLinesPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final greyPaint = Paint()
-      ..color = const Color(0xFFB9B9B9).withOpacity(0.56)
+      ..color = const Color(0xFFB9B9B9).withValues(alpha: 0.56)
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
     final softGreyPaint = Paint()
-      ..color = const Color(0xFFD0D0D0).withOpacity(0.52)
+      ..color = const Color(0xFFD0D0D0).withValues(alpha: 0.52)
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
     final warmPaint = Paint()
-      ..color = const Color(0xFFE4A29E).withOpacity(0.52)
+      ..color = const Color(0xFFE4A29E).withValues(alpha: 0.52)
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    /// Left outer grey curve
     final Path line1 = Path()
       ..moveTo(size.width * 0.255, size.height * 0.045)
       ..cubicTo(
@@ -578,7 +523,6 @@ class _CurvedLinesPainter extends CustomPainter {
         size.height * 0.965,
       );
 
-    /// Left inner grey curve
     final Path line2 = Path()
       ..moveTo(size.width * 0.385, size.height * 0.045)
       ..cubicTo(
@@ -598,7 +542,6 @@ class _CurvedLinesPainter extends CustomPainter {
         size.height * 0.965,
       );
 
-    /// Right inner warm curve
     final Path line3 = Path()
       ..moveTo(size.width * 0.640, size.height * 0.045)
       ..cubicTo(
@@ -618,7 +561,6 @@ class _CurvedLinesPainter extends CustomPainter {
         size.height * 0.965,
       );
 
-    /// Right outer warm curve
     final Path line4 = Path()
       ..moveTo(size.width * 0.825, size.height * 0.060)
       ..cubicTo(

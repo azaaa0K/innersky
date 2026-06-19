@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:innersky/screeens/main_screen/Home.dart';
+import 'package:innersky/core/onboarding_profile.dart';
+import 'package:innersky/screeens/main_screen/home_screen.dart';
 
 class LoadingScreen extends StatefulWidget {
-  const LoadingScreen({super.key});
+  const LoadingScreen({required this.profile, super.key});
+
+  final OnboardingProfile profile;
 
   @override
   State<LoadingScreen> createState() => _LoadingScreenState();
@@ -44,13 +47,12 @@ class _LoadingScreenState extends State<LoadingScreen> {
     });
 
     Future.delayed(const Duration(milliseconds: 6200), () {
+      // Guard: widget may have been disposed if the user navigated back.
       if (!mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const HomeScreen(),
-        ),
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => HomeScreen(profile: widget.profile)),
+        (route) => false,
       );
     });
   }
@@ -78,58 +80,53 @@ class _LoadingScreenState extends State<LoadingScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Center(
-          child: _showAnimation
-              ? SizedBox(
-                  width: imageSize,
-                  height: imageSize,
-                  child: AnimatedSwitcher(
-                    duration: transitionTime,
-                    layoutBuilder: (currentChild, previousChildren) {
-                      return currentChild ?? const SizedBox.shrink();
-                    },
-                    transitionBuilder: (child, animation) {
-                      final curvedAnimation = CurvedAnimation(
-                        parent: animation,
-                        curve: const RiveEaseInCurve(
-                          amplitude: 1,
-                          period: 1,
-                        ),
-                      );
+        child: Semantics(
+          container: true,
+          label: 'Loading',
+          liveRegion: true,
+          child: Center(
+            child: ExcludeSemantics(
+              child: _showAnimation
+                  ? SizedBox(
+                      width: imageSize,
+                      height: imageSize,
+                      child: AnimatedSwitcher(
+                        duration: transitionTime,
+                        layoutBuilder: (currentChild, previousChildren) {
+                          return currentChild ?? const SizedBox.shrink();
+                        },
+                        transitionBuilder: (child, animation) {
+                          final curvedAnimation = CurvedAnimation(
+                            parent: animation,
+                            curve: const RiveEaseInCurve(
+                              amplitude: 1,
+                              period: 1,
+                            ),
+                          );
 
-                      return FadeTransition(
-                        opacity: curvedAnimation,
-                        child: ScaleTransition(
-                          scale: Tween<double>(
-                            begin: 0.96,
-                            end: 1.0,
-                          ).animate(curvedAnimation),
-                          child: child,
+                          return FadeTransition(
+                            opacity: curvedAnimation,
+                            child: ScaleTransition(
+                              scale: Tween<double>(
+                                begin: 0.96,
+                                end: 1.0,
+                              ).animate(curvedAnimation),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Image.asset(
+                          _images[_index],
+                          key: ValueKey(_images[_index]),
+                          fit: BoxFit.contain,
                         ),
-                      );
-                    },
-                    child: Image.asset(
-                      _images[_index],
-                      key: ValueKey(_images[_index]),
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                )
-              : const SizedBox.shrink(),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
         ),
       ),
-    );
-  }
-}
-
-class EmptyNextScreen extends StatelessWidget {
-  const EmptyNextScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Colors.white,
-      body: SizedBox.expand(),
     );
   }
 }
@@ -138,10 +135,7 @@ class RiveEaseInCurve extends Curve {
   final double amplitude;
   final double period;
 
-  const RiveEaseInCurve({
-    this.amplitude = 1,
-    this.period = 1,
-  });
+  const RiveEaseInCurve({this.amplitude = 1, this.period = 1});
 
   @override
   double transformInternal(double t) {

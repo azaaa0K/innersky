@@ -4,10 +4,18 @@ import 'enter_birth_date_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+import '../../core/app_colors.dart';
+import '../../core/app_sizes.dart';
+import '../../core/app_typography.dart';
+import '../../core/onboarding_profile.dart';
+import '../../shared/widgets/app_primary_button.dart';
+import '../../shared/widgets/onboarding_progress_indicator.dart';
 
 class EnterNameScreen extends StatefulWidget {
-  const EnterNameScreen({super.key});
+  const EnterNameScreen({required this.profile, super.key});
+
+  final OnboardingProfile profile;
 
   @override
   State<EnterNameScreen> createState() => _EnterNameScreenState();
@@ -18,6 +26,8 @@ class _EnterNameScreenState extends State<EnterNameScreen> {
   final FocusNode _nameFocusNode = FocusNode();
 
   static const String _assetBase = 'assets/welcome';
+
+  bool get _hasName => _nameController.text.trim().isNotEmpty;
 
   double _x(double screenWidth, double value) {
     return screenWidth * (value / 832);
@@ -36,6 +46,10 @@ class _EnterNameScreenState extends State<EnterNameScreen> {
   @override
   void initState() {
     super.initState();
+
+    _nameController.addListener(() {
+      setState(() {});
+    });
 
     Future.delayed(const Duration(milliseconds: 400), () {
       if (mounted) {
@@ -56,281 +70,285 @@ class _EnterNameScreenState extends State<EnterNameScreen> {
     final size = MediaQuery.sizeOf(context);
     final w = size.width;
     final h = size.height;
+    final s = _s(context, 1);
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: const Color(0xFFFCFCFB),
+      resizeToAvoidBottomInset: true,
+      backgroundColor: AppColors.backgroundPrimary,
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
-        child: SizedBox.expand(
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(color: const Color(0xFFFCFCFB)),
-              Positioned.fill(
-                child: Opacity(
-                  opacity: 0.26,
-                  child: Image.asset(
-                    '$_assetBase/cosmic.png',
-                    fit: BoxFit.cover,
-                    alignment: Alignment.bottomCenter,
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.white.withOpacity(0.94),
-                        Colors.white.withOpacity(0.80),
-                        Colors.white.withOpacity(0.50),
-                        Colors.white.withOpacity(0.86),
-                      ],
-                      stops: const [0.0, 0.36, 0.68, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: _x(w, -115),
-                right: _x(w, -115),
-                bottom: _y(h, 355),
-                height: _y(h, 645),
-                child: Opacity(
-                  opacity: 0.52,
-                  child: Image.asset(
-                    '$_assetBase/cosmic.png',
-                    fit: BoxFit.cover,
-                    alignment: Alignment.bottomCenter,
-                  ),
-                ),
-              ),
-              Positioned(
-                left: _x(w, 55),
-                top: _y(h, 65),
-                child: SafeArea(
-                  child: Text(
-                    'Posting to social?\nTag us, we\'re @innersky',
-                    style: GoogleFonts.inter(
-                      fontSize: _s(context, 21),
-                      height: 1.52,
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFF050505),
-                      letterSpacing: _s(context, 1.1),
-                      decoration: TextDecoration.none,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                top: _y(h, 240),
-                child: Center(
-                  child: SizedBox(
-                    width: _s(context, 82),
-                    height: _s(context, 82),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        SvgPicture.asset(
-                          '$_assetBase/moon_with_stars.svg',
-                          width: _s(context, 100),
-                          height: _s(context, 100),
-                          colorFilter: const ColorFilter.mode(
-                            Colors.black,
-                            BlendMode.srcIn,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
+            return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: EdgeInsets.only(bottom: bottomInset),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: SizedBox(
+                  height: size.height,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(color: AppColors.backgroundPrimary),
+
+                      Positioned.fill(
+                        child: Opacity(
+                          opacity: 0.26,
+                          child: Image.asset(
+                            '$_assetBase/cosmic.png',
+                            fit: BoxFit.cover,
+                            alignment: Alignment.bottomCenter,
                           ),
                         ),
-                        Positioned(
-                          right: _s(context, 8),
-                          top: _s(context, 22),
-                          child: SvgPicture.asset(
-                            '$_assetBase/black_star.svg',
-                            width: _s(context, 25),
-                            height: _s(context, 25),
-                            colorFilter: const ColorFilter.mode(
-                              Colors.black,
-                              BlendMode.srcIn,
+                      ),
+
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.white.withValues(alpha: 0.94),
+                                Colors.white.withValues(alpha: 0.80),
+                                Colors.white.withValues(alpha: 0.50),
+                                Colors.white.withValues(alpha: 0.86),
+                              ],
+                              stops: const [0.0, 0.36, 0.68, 1.0],
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: _x(w, 150),
-                top: _y(h, 308),
-                child: _SmallStar(size: _s(context, 34), opacity: 0.18),
-              ),
-              Positioned(
-                left: _x(w, 108),
-                top: _y(h, 355),
-                child: _SmallStar(size: _s(context, 35), opacity: 0.18),
-              ),
-              Positioned(
-                right: _x(w, 165),
-                top: _y(h, 303),
-                child: _SmallStar(size: _s(context, 31), opacity: 0.22),
-              ),
-              Positioned(
-                right: _x(w, 100),
-                top: _y(h, 370),
-                child: _SmallStar(size: _s(context, 25), opacity: 0.22),
-              ),
-              Positioned(
-                right: _x(w, 240),
-                top: _y(h, 980),
-                child: _SmallStar(size: _s(context, 23), opacity: 0.18),
-              ),
-              Positioned(
-                left: _x(w, 78),
-                top: _y(h, 1040),
-                child: _SmallStar(size: _s(context, 24), opacity: 0.18),
-              ),
-              Positioned(
-                left: _x(w, 198),
-                top: _y(h, 1280),
-                child: _SmallStar(size: _s(context, 23), opacity: 0.20),
-              ),
-              Positioned(
-                left: _x(w, 35),
-                right: _x(w, 35),
-                top: _y(h, 372),
-                child: Column(
-                  children: [
-                    Text(
-                      'STEP  1  OF  4',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        fontSize: _s(context, 17),
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF777777),
-                        letterSpacing: _s(context, 8.0),
                       ),
-                    ),
-                    SizedBox(height: _y(h, 29)),
-                    Text(
-                      'WHAT\'S YOUR NAME?',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.playfairDisplay(
-                        fontSize: _s(context, 37),
-                        height: 1.06,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black,
-                        letterSpacing: _s(context, 4.3),
+
+                      Positioned(
+                        left: _x(w, -115),
+                        right: _x(w, -115),
+                        bottom: _y(h, 355),
+                        height: _y(h, 645),
+                        child: Opacity(
+                          opacity: 0.52,
+                          child: Image.asset(
+                            '$_assetBase/cosmic.png',
+                            fit: BoxFit.cover,
+                            alignment: Alignment.bottomCenter,
+                          ),
+                        ),
                       ),
-                    ),
-                    SizedBox(height: _y(h, 25)),
-                    Text(
-                      'This helps personalize your chart and daily readings.',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        fontSize: _s(context, 17.5),
-                        height: 1.35,
-                        fontWeight: FontWeight.w400,
-                        color: const Color(0xFF626262),
-                        letterSpacing: _s(context, 1.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                left: _x(w, 142),
-                right: _x(w, 142),
-                top: _y(h, 705),
-                child: _NameInput(
-                  controller: _nameController,
-                  focusNode: _nameFocusNode,
-                  scale: _s(context, 1),
-                ),
-              ),
-              Positioned(
-                left: _x(w, 95),
-                right: _x(w, 95),
-                bottom: _y(h, 270),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(width: _x(w, 13)),
-                        Flexible(
+
+                      // ── Social header ──────────────────────────────────────
+                      Positioned(
+                        left: _x(w, 55),
+                        top: _y(h, 65),
+                        child: SafeArea(
                           child: Text(
-                            'We use this to generate your astrological birth chart.',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
-                              fontSize: _s(context, 16.5),
-                              height: 1.35,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF525252),
-                              letterSpacing: _s(context, 0.2),
+                            'Posting to social?\nTag us, we\'re @innersky',
+                            style: AppTypography.socialHeader(s),
+                          ),
+                        ),
+                      ),
+
+                      // ── Decorative moon icon ───────────────────────────────
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: _y(h, 240),
+                        child: Center(
+                          child: SizedBox(
+                            width: _s(context, 82),
+                            height: _s(context, 82),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                SvgPicture.asset(
+                                  '$_assetBase/moon_with_stars.svg',
+                                  width: _s(context, 100),
+                                  height: _s(context, 100),
+                                  colorFilter: const ColorFilter.mode(
+                                    Colors.black,
+                                    BlendMode.srcIn,
+                                  ),
+                                ),
+                                Positioned(
+                                  right: _s(context, 8),
+                                  top: _s(context, 22),
+                                  child: SvgPicture.asset(
+                                    '$_assetBase/black_star.svg',
+                                    width: _s(context, 25),
+                                    height: _s(context, 25),
+                                    colorFilter: const ColorFilter.mode(
+                                      Colors.black,
+                                      BlendMode.srcIn,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    SizedBox(height: _y(h, 20)),
-                    Text(
-                      'We never share or sell your data.',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        fontSize: _s(context, 17),
-                        height: 1.35,
-                        fontWeight: FontWeight.w400,
-                        color: const Color(0xFF525252),
-                        letterSpacing: _s(context, 0.2),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                left: _x(w, 55),
-                right: _x(w, 55),
-                bottom: _y(h, 98),
-                child: _ContinueButton(
-                  s: _s(context, 1),
-                  onTap: () {
-                    FocusScope.of(context).unfocus();
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (_) => const EnterBirthDateScreen(),
+
+                      // ── Decorative stars ───────────────────────────────────
+                      Positioned(
+                        left: _x(w, 150),
+                        top: _y(h, 308),
+                        child: _SmallStar(size: _s(context, 34), opacity: 0.18),
                       ),
-                    );
-                  },
+                      Positioned(
+                        left: _x(w, 108),
+                        top: _y(h, 355),
+                        child: _SmallStar(size: _s(context, 35), opacity: 0.18),
+                      ),
+                      Positioned(
+                        right: _x(w, 165),
+                        top: _y(h, 303),
+                        child: _SmallStar(size: _s(context, 31), opacity: 0.22),
+                      ),
+                      Positioned(
+                        right: _x(w, 100),
+                        top: _y(h, 370),
+                        child: _SmallStar(size: _s(context, 25), opacity: 0.22),
+                      ),
+                      Positioned(
+                        right: _x(w, 240),
+                        top: _y(h, 980),
+                        child: _SmallStar(size: _s(context, 23), opacity: 0.18),
+                      ),
+                      Positioned(
+                        left: _x(w, 78),
+                        top: _y(h, 1040),
+                        child: _SmallStar(size: _s(context, 24), opacity: 0.18),
+                      ),
+                      Positioned(
+                        left: _x(w, 198),
+                        top: _y(h, 1280),
+                        child: _SmallStar(size: _s(context, 23), opacity: 0.20),
+                      ),
+
+                      // ── Step label + title + subtitle ──────────────────────
+                      Positioned(
+                        left: _x(w, 35),
+                        right: _x(w, 35),
+                        top: _y(h, 372),
+                        child: Column(
+                          children: [
+                            // Fixed: "STEP  1  OF  5" (flow is 5 steps total)
+                            Text(
+                              'STEP  1  OF  5',
+                              textAlign: TextAlign.center,
+                              style: AppTypography.stepLabel(s),
+                            ),
+                            SizedBox(height: _y(h, 29)),
+                            Text(
+                              'WHAT\'S YOUR NAME?',
+                              textAlign: TextAlign.center,
+                              style: AppTypography.screenTitle(s),
+                            ),
+                            SizedBox(height: _y(h, 25)),
+                            Text(
+                              'This helps personalize your chart and daily readings.',
+                              textAlign: TextAlign.center,
+                              style: AppTypography.subtitle(s),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // ── Name input ─────────────────────────────────────────
+                      Positioned(
+                        left: _x(w, 142),
+                        right: _x(w, 142),
+                        top: _y(h, 705),
+                        child: _NameInput(
+                          controller: _nameController,
+                          focusNode: _nameFocusNode,
+                          scale: s,
+                        ),
+                      ),
+
+                      // ── Helper / privacy copy ──────────────────────────────
+                      Positioned(
+                        left: _x(w, 95),
+                        right: _x(w, 95),
+                        bottom: _y(h, 270),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(width: _x(w, 13)),
+                                Flexible(
+                                  child: Text(
+                                    'We use this to generate your astrological birth chart.',
+                                    textAlign: TextAlign.center,
+                                    style: AppTypography.helperText(s),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: _y(h, 20)),
+                            Text(
+                              'We never share or sell your data.',
+                              textAlign: TextAlign.center,
+                              style: AppTypography.helperText(s),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // ── CTA button ─────────────────────────────────────────
+                      Positioned(
+                        left: _x(w, AppSizes.ctaHorizontalInset),
+                        right: _x(w, AppSizes.ctaHorizontalInset),
+                        bottom: _y(h, AppSizes.ctaBottomInset),
+                        child: AppPrimaryButton(
+                          label: 'CONTINUE',
+                          scale: s,
+                          isEnabled: _hasName,
+                          onPressed: () {
+                            if (!_hasName) {
+                              _nameFocusNode.requestFocus();
+                              return;
+                            }
+                            FocusScope.of(context).unfocus();
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => EnterBirthDateScreen(
+                                  profile: widget.profile.copyWith(
+                                    name: _nameController.text.trim(),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                      // ── Progress indicator ─────────────────────────────────
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: _y(h, AppSizes.progressBottomInset),
+                        child: OnboardingProgressIndicator(
+                          currentStep: 1,
+                          totalSteps: 5,
+                          scale: s,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: _y(h, 40),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _IndicatorBar(active: true, scale: _s(context, 1)),
-                    SizedBox(width: _x(w, 25)),
-                    _IndicatorBar(active: false, scale: _s(context, 1)),
-                    SizedBox(width: _x(w, 25)),
-                    _IndicatorBar(active: false, scale: _s(context, 1)),
-                    SizedBox(width: _x(w, 25)),
-                    _IndicatorBar(active: false, scale: _s(context, 1)),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
 }
+
+// ── Private widgets ──────────────────────────────────────────────────────────
 
 class _NameInput extends StatelessWidget {
   const _NameInput({
@@ -353,6 +371,7 @@ class _NameInput extends StatelessWidget {
           child: TextField(
             controller: controller,
             focusNode: focusNode,
+            textInputAction: TextInputAction.next,
             textAlign: TextAlign.center,
             cursorColor: Colors.black,
             cursorWidth: 1.4 * scale,
@@ -360,24 +379,22 @@ class _NameInput extends StatelessWidget {
             keyboardType: TextInputType.name,
             textCapitalization: TextCapitalization.words,
             inputFormatters: [LengthLimitingTextInputFormatter(22)],
-            style: GoogleFonts.playfairDisplay(
-              fontSize: 58 * scale,
-              height: 1.0,
-              fontWeight: FontWeight.w500,
-              color: Colors.black,
-              letterSpacing: -1.0 * scale,
-            ),
+            onSubmitted: (value) {
+              if (value.trim().isNotEmpty) {
+                FocusScope.of(context).unfocus();
+              }
+            },
+            // Name field keeps its original larger size (58) for editorial impact
+            style: AppTypography.inputText(
+              scale,
+            ).copyWith(fontSize: 58 * scale, letterSpacing: -1.0 * scale),
             decoration: InputDecoration(
               isDense: true,
               border: InputBorder.none,
               hintText: 'your name',
-              hintStyle: GoogleFonts.playfairDisplay(
-                fontSize: 48 * scale,
-                height: 1.0,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF9A9A9A),
-                letterSpacing: -1.0 * scale,
-              ),
+              hintStyle: AppTypography.inputHint(
+                scale,
+              ).copyWith(fontSize: 48 * scale, letterSpacing: -1.0 * scale),
               contentPadding: EdgeInsets.zero,
             ),
           ),
@@ -386,7 +403,10 @@ class _NameInput extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Container(height: 1.1 * scale, color: Colors.black),
+              child: Container(
+                height: 1.1 * scale,
+                color: AppColors.inputUnderline,
+              ),
             ),
             SizedBox(width: 16 * scale),
             SvgPicture.asset(
@@ -400,96 +420,14 @@ class _NameInput extends StatelessWidget {
             ),
             SizedBox(width: 16 * scale),
             Expanded(
-              child: Container(height: 1.1 * scale, color: Colors.black),
+              child: Container(
+                height: 1.1 * scale,
+                color: AppColors.inputUnderline,
+              ),
             ),
           ],
         ),
       ],
-    );
-  }
-}
-
-class _ContinueButton extends StatelessWidget {
-  const _ContinueButton({
-    required this.s,
-    required this.onTap,
-  });
-
-  final double s;
-  final VoidCallback onTap;
-  static const String _assetBase = 'assets/welcome';
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 104 * s,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(24 * s),
-          onTap: onTap,
-          child: Ink(
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(24 * s),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 24 * s,
-                  offset: Offset(0, 11 * s),
-                ),
-              ],
-            ),
-            child: Center(
-              child: Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'CONTINUE',
-                      style: GoogleFonts.spaceMono(
-                        fontSize: 24 * s,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white,
-                        letterSpacing: 2.5 * s,
-                      ),
-                    ),
-                    SizedBox(width: 44 * s),
-                    Text(
-                      '→',
-                      style: GoogleFonts.spaceMono(
-                        fontSize: 38 * s,
-                        fontWeight: FontWeight.w300,
-                        color: Colors.white,
-                        height: 1.0,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _IndicatorBar extends StatelessWidget {
-  const _IndicatorBar({required this.active, required this.scale});
-
-  final bool active;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 64 * scale,
-      height: 8 * scale,
-      decoration: BoxDecoration(
-        color: active ? Colors.black : const Color(0xFFD9D9D9),
-        borderRadius: BorderRadius.circular(100),
-      ),
     );
   }
 }

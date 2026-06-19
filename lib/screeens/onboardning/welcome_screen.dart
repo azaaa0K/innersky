@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/onboarding_profile.dart';
+
 const _kCardBg = Color(0xEBFFFFFF);
 const _kShadow1 = Color(0x1A000000);
 const _kShadow2 = Color(0x0A000000);
@@ -176,8 +178,11 @@ class WelcomeScreen extends StatelessWidget {
                 assetBase: _assetBase,
                 s: _s(context, 1),
                 onTap: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const EnterNameScreen()),
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const EnterNameScreen(profile: OnboardingProfile()),
+                    ),
                   );
                 },
               ),
@@ -187,18 +192,30 @@ class WelcomeScreen extends StatelessWidget {
               right: 0,
               bottom: _y(h, 105) + botPad,
               child: Center(
-                child: GestureDetector(
-                  onTap: () {},
-                  child: Text(
-                    'I ALREADY HAVE AN ACCOUNT',
-                    style: GoogleFonts.inter(
-                      fontSize: _s(context, 20),
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black,
-                      letterSpacing: 2.9,
-                      decoration: TextDecoration.underline,
-                      decorationThickness: 1.2,
-                      decorationColor: Colors.black,
+                child: Semantics(
+                  button: true,
+                  label: 'I already have an account',
+                  child: GestureDetector(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Account sign-in is not available yet.',
+                          ),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'I ALREADY HAVE AN ACCOUNT',
+                      style: GoogleFonts.inter(
+                        fontSize: _s(context, 20),
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black,
+                        letterSpacing: 2.9,
+                        decoration: TextDecoration.underline,
+                        decorationThickness: 1.2,
+                        decorationColor: Colors.black,
+                      ),
                     ),
                   ),
                 ),
@@ -434,47 +451,51 @@ class _GetStartedButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final height = math.max(109 * s, 52.0);
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: height,
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(math.max(24 * s, 14)),
-          boxShadow: [
-            BoxShadow(
-              color: _kBtnShadow,
-              blurRadius: 24 * s,
-              offset: Offset(0, 9 * s),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(width: math.max(24 * s, 12)),
-              Text(
-                'GET STARTED',
-                style: GoogleFonts.spaceMono(
-                  fontSize: 24 * s,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white,
-                  letterSpacing: 2.5 * s,
-                ),
-              ),
-              SizedBox(width: 44 * s),
-              Text(
-                '→',
-                style: GoogleFonts.spaceMono(
-                  fontSize: 38 * s,
-                  fontWeight: FontWeight.w300,
-                  color: Colors.white,
-                  height: 1.0,
-                ),
+    return Semantics(
+      button: true,
+      label: 'Get started',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: height,
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(math.max(24 * s, 14)),
+            boxShadow: [
+              BoxShadow(
+                color: _kBtnShadow,
+                blurRadius: 24 * s,
+                offset: Offset(0, 9 * s),
               ),
             ],
+          ),
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(width: math.max(24 * s, 12)),
+                Text(
+                  'GET STARTED',
+                  style: GoogleFonts.spaceMono(
+                    fontSize: 24 * s,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white,
+                    letterSpacing: 2.5 * s,
+                  ),
+                ),
+                SizedBox(width: 44 * s),
+                Text(
+                  '→',
+                  style: GoogleFonts.spaceMono(
+                    fontSize: 38 * s,
+                    fontWeight: FontWeight.w300,
+                    color: Colors.white,
+                    height: 1.0,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
